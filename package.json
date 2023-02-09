@@ -1,0 +1,23 @@
+﻿{
+  "name": "com.kalkuz.skillsystem",
+  "version": "0.0.1",
+  "displayName": "Kalkuz Skill System",
+  "description": "A skill system architecture which supports oth statically or dynamically designed skills with upgrades.",
+  "category": "Tools",
+  "unity": "2021.3",
+  "unityRelease": "9f1",
+  "documentationUrl": "",
+  "changelogUrl": "",
+  "licensesUrl": "",
+  "dependencies": {
+  },
+  "keywords": [
+    "scripts",
+    "tools"
+  ],
+  "author": {
+    "name": "Oğuzhan Kalkuz",
+    "email": "oguzhan@kalkuz.me",
+    "url": ""
+  }
+}
