@@ -10,7 +10,8 @@
   "changelogUrl": "",
   "licensesUrl": "",
   "dependencies": {
-    "com.kalkuz.statsystem": "https://github.com/kalkuz/unity-stat-system"
+    "com.kalkuz.statsystem": "https://github.com/kalkuz/unity-stat-system",
+    "com.kalkuz.pooling": "https://github.com/kalkuz/unity-pooling"
   },
   "keywords": [
     "scripts",
