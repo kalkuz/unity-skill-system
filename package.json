@@ -10,6 +10,7 @@
   "changelogUrl": "",
   "licensesUrl": "",
   "dependencies": {
+    "com.kalkuz.statsystem": "https://github.com/kalkuz/unity-stat-system"
   },
   "keywords": [
     "scripts",

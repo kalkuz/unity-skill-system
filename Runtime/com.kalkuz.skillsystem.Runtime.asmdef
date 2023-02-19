@@ -1,14 +1,16 @@
-﻿{
-  "name": "com.kalkuz.skillsystem.Runtime",
-  "rootNamespace": "KalkuzSystems.SkillSystem",
-  "references": [],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+{
+    "name": "com.kalkuz.skillsystem.Runtime",
+    "rootNamespace": "KalkuzSystems.SkillSystem",
+    "references": [
+        "GUID:bee35b0340fc01c4183444d80f8414c1"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
