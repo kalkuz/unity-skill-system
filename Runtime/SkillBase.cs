@@ -2,7 +2,7 @@
 
 namespace KalkuzSystems.Skill
 {
-  public abstract class BaseSkill : ScriptableObject
+  public abstract class SkillBase : ScriptableObject
   {
     [SerializeField] protected string skillName;
     [SerializeField] protected string description;

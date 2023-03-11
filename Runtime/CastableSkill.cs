@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace KalkuzSystems.Skill
 {
-  public abstract class CastableSkill : BaseSkill
+  public abstract class CastableSkill : SkillBase
   {
     [SerializeField] [Space(20f)] protected float cooldown = 1f;
     [SerializeField] protected List<Damage> damages;

@@ -5,6 +5,7 @@ using System.Linq;
 using KalkuzSystems.Pooling;
 using KalkuzSystems.Stats;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace KalkuzSystems.Skill
 {
@@ -16,12 +17,17 @@ namespace KalkuzSystems.Skill
 
     [SerializeField] [Space(20f)] private float collisionRadius;
 
+    [SerializeField] private UnityEvent onSpawn;
+    [SerializeField] private UnityEvent onHit;
+    [SerializeField] private UnityEvent onDeath;
+    [SerializeField] private UnityEvent onHide;
+
     private float currentSpeed;
 
     private List<Damage> damages;
 
     private float distanceTravelled;
-    private List<BaseCharacterStats> hitCharacters;
+    private List<CharacterStats> hitCharacters;
     private Coroutine lifetimeCoroutine;
 
     private Transform m_transform;
@@ -59,7 +65,7 @@ namespace KalkuzSystems.Skill
       var hitCollider = hit.collider;
       if (hitCollider && hitCollider.CompareTag(targetTag))
       {
-        var character = hitCollider.GetComponent<BaseCharacterStats>();
+        var character = hitCollider.GetComponent<CharacterStats>();
         if (character)
         {
           if (!(character.IsDied || hitCharacters.Contains(character)))
@@ -94,7 +100,7 @@ namespace KalkuzSystems.Skill
 
     private void PostInitialize(string targetTag)
     {
-      hitCharacters ??= new List<BaseCharacterStats>();
+      hitCharacters ??= new List<CharacterStats>();
       hitCharacters.Clear();
 
       this.targetTag = targetTag;
@@ -118,49 +124,51 @@ namespace KalkuzSystems.Skill
         remainingRicochet = 0;
       }
 
+      onSpawn?.Invoke();
       enabled = true;
     }
 
-    private void Hit(BaseCharacterStats character)
+    private void Hit(CharacterStats character)
     {
       hitCharacters.Add(character);
 
       var dodged = character.ShouldDodge(1f);
-      if (!dodged)
+      if (dodged) return;
+      
+      onHit?.Invoke();
+
+      foreach (var damage in damages) character.ApplyDamage(damage, 0f, 1f);
+
+      if (remainingPierce > 0)
       {
-        foreach (var damage in damages) character.ApplyDamage(damage, 0f, 1f);
+        remainingPierce--;
 
-        if (remainingPierce > 0)
+        if (sourceSkillCastedBasic)
         {
-          remainingPierce--;
+          currentSpeed *= sourceSkillCastedBasic.ProjectileEnhancingParams.SpeedMultiplierPerPierce;
 
-          if (sourceSkillCastedBasic)
+          for (var i = 0; i < damages.Count; i++)
           {
-            currentSpeed *= sourceSkillCastedBasic.ProjectileEnhancingParams.SpeedMultiplierPerPierce;
-
-            for (var i = 0; i < damages.Count; i++)
-            {
-              damages[i] *= sourceSkillCastedBasic.ProjectileEnhancingParams.DamageMultiplierPerPierce;
-            }
+            damages[i] *= sourceSkillCastedBasic.ProjectileEnhancingParams.DamageMultiplierPerPierce;
           }
         }
-        else if (remainingRicochet > 0)
+      }
+      else if (remainingRicochet > 0)
+      {
+        remainingRicochet--;
+
+        if (sourceSkillCastedBasic)
         {
-          remainingRicochet--;
+          currentSpeed *= sourceSkillCastedBasic.ProjectileEnhancingParams.SpeedMultiplierPerRicochet;
 
-          if (sourceSkillCastedBasic)
-          {
-            currentSpeed *= sourceSkillCastedBasic.ProjectileEnhancingParams.SpeedMultiplierPerRicochet;
-
-            for (var i = 0; i < damages.Count; i++) damages[i] *= sourceSkillCastedBasic.ProjectileEnhancingParams.DamageMultiplierPerRicochet;
-          }
-
-          FindRicochetDirection();
+          for (var i = 0; i < damages.Count; i++) damages[i] *= sourceSkillCastedBasic.ProjectileEnhancingParams.DamageMultiplierPerRicochet;
         }
-        else
-        {
-          Die(character.transform);
-        }
+
+        FindRicochetDirection();
+      }
+      else
+      {
+        Die(character.transform);
       }
     }
 
@@ -181,12 +189,14 @@ namespace KalkuzSystems.Skill
         lifetimeCoroutine = null;
       }
 
+      onDeath?.Invoke();
       enabled = false;
       poolObject.ReturnToPool();
     }
 
     public void Hide()
     {
+      onHide?.Invoke();
       enabled = false;
     }
 
@@ -197,7 +207,7 @@ namespace KalkuzSystems.Skill
       var cols = Physics2D.OverlapCircleAll(Transform.position, sourceSkillCastedBasic.RicochetRadius);
       if (cols.Length <= 0) return;
 
-      var selected = cols.Select(i => i.GetComponent<BaseCharacterStats>()).Where(i => i);
+      var selected = cols.Select(i => i.GetComponent<CharacterStats>()).Where(i => i);
       
       var closest = selected
         .Where(i => i.CompareTag(targetTag) && !hitCharacters.Contains(i))
