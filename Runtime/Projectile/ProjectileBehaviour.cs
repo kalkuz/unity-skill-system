@@ -22,7 +22,10 @@ namespace KalkuzSystems.Skill
     [SerializeField] private UnityEvent onDeath;
     [SerializeField] private UnityEvent onHide;
 
-    private float currentSpeed;
+    private Vector3 currentSpeed;
+
+    private Vector3 currentLocalAcceleration;
+    private Vector3 currentGlobalAcceleration;
 
     private List<Damage> damages;
 
@@ -53,15 +56,45 @@ namespace KalkuzSystems.Skill
     private void Update()
     {
       if (sourceSkillCastedBasic)
+      {
         if (distanceTravelled > sourceSkillCastedBasic.MaxDistance)
         {
           Die(null);
           return;
         }
+      }
+
+      var deltaLocalJerk = sourceSkill.BaseLocalJerk * Time.deltaTime;
+      var deltaGlobalJerk = sourceSkill.BaseGlobalJerk * Time.deltaTime;
+
+      currentLocalAcceleration += deltaLocalJerk;
+      currentGlobalAcceleration += deltaGlobalJerk;
+
+      var netCurrentAcceleration = Transform.rotation * currentLocalAcceleration + currentGlobalAcceleration;
+      var netDeltaAcceleration = netCurrentAcceleration * Time.deltaTime;
+      netDeltaAcceleration = netDeltaAcceleration.normalized * Mathf.Clamp(netDeltaAcceleration.magnitude,
+        sourceSkill.MinNetAccelerationMagnitude, sourceSkill.MaxNetAccelerationMagnitude);
+
+      currentSpeed += netDeltaAcceleration;
+      var currentSpeedMagnitude = currentSpeed.magnitude;
+      var currentSpeedNormalized = currentSpeed.normalized;
+
+      currentSpeed = currentSpeedNormalized * Mathf.Clamp(currentSpeedMagnitude, sourceSkill.MinSpeedMagnitude,
+        sourceSkill.MaxSpeedMagnitude);
 
       var deltaSpeed = currentSpeed * Time.deltaTime;
+      var deltaSpeedMagnitude = deltaSpeed.magnitude;
+      var deltaSpeedNormalized = deltaSpeed.normalized;
 
-      var hit = Physics2D.CircleCast(Transform.position, collisionRadius, Transform.up, deltaSpeed);
+      Update2D(deltaSpeed, deltaSpeedNormalized, deltaSpeedMagnitude);
+
+      Transform.position += deltaSpeed;
+      distanceTravelled += deltaSpeedMagnitude;
+    }
+
+    private void Update2D(Vector3 deltaSpeed, Vector3 deltaSpeedNormalized, float deltaSpeedMagnitude)
+    {
+      var hit = Physics2D.CircleCast(Transform.position, collisionRadius, deltaSpeed, deltaSpeedMagnitude);
       var hitCollider = hit.collider;
       if (hitCollider && hitCollider.CompareTag(targetTag))
       {
@@ -74,9 +107,8 @@ namespace KalkuzSystems.Skill
           }
         }
       }
-
-      Transform.position += Transform.up * deltaSpeed;
-      distanceTravelled += deltaSpeed;
+      
+      Transform.rotation = Quaternion.LookRotation(Vector3.forward, deltaSpeedNormalized);
     }
 
     private void OnDrawGizmosSelected()
@@ -107,13 +139,18 @@ namespace KalkuzSystems.Skill
 
       distanceTravelled = 0f;
 
-      currentSpeed = sourceSkill.BaseProjectileSpeed;
+      currentSpeed = Transform.rotation * sourceSkill.BaseProjectileSpeed;
+      currentLocalAcceleration = sourceSkill.BaseLocalAcceleration;
+      currentGlobalAcceleration = sourceSkill.BaseGlobalAcceleration;
+
       damages = new List<Damage>(sourceSkill.Damages);
 
       if (sourceSkillCastedBasic)
       {
-        remainingPierce = sourceSkillCastedBasic.BasePierceAmount + sourceSkillCastedBasic.ProjectileEnhancingParams.AdditionalPierceAmount;
-        remainingRicochet = sourceSkillCastedBasic.BaseRicochetAmount + sourceSkillCastedBasic.ProjectileEnhancingParams.AdditionalRicochetAmount;
+        remainingPierce = sourceSkillCastedBasic.BasePierceAmount +
+                          sourceSkillCastedBasic.ProjectileEnhancingParams.AdditionalPierceAmount;
+        remainingRicochet = sourceSkillCastedBasic.BaseRicochetAmount +
+                            sourceSkillCastedBasic.ProjectileEnhancingParams.AdditionalRicochetAmount;
 
         if (lifetimeCoroutine != null) StopCoroutine(lifetimeCoroutine);
         lifetimeCoroutine = StartCoroutine(Lifetime(sourceSkillCastedBasic.Lifetime));
@@ -134,7 +171,7 @@ namespace KalkuzSystems.Skill
 
       var dodged = character.ShouldDodge(1f);
       if (dodged) return;
-      
+
       onHit?.Invoke();
 
       foreach (var damage in damages) character.ApplyDamage(damage, 0f, 1f);
@@ -161,7 +198,8 @@ namespace KalkuzSystems.Skill
         {
           currentSpeed *= sourceSkillCastedBasic.ProjectileEnhancingParams.SpeedMultiplierPerRicochet;
 
-          for (var i = 0; i < damages.Count; i++) damages[i] *= sourceSkillCastedBasic.ProjectileEnhancingParams.DamageMultiplierPerRicochet;
+          for (var i = 0; i < damages.Count; i++)
+            damages[i] *= sourceSkillCastedBasic.ProjectileEnhancingParams.DamageMultiplierPerRicochet;
         }
 
         FindRicochetDirection();
@@ -203,12 +241,12 @@ namespace KalkuzSystems.Skill
     private void FindRicochetDirection()
     {
       if (!sourceSkillCastedBasic) return;
-      
+
       var cols = Physics2D.OverlapCircleAll(Transform.position, sourceSkillCastedBasic.RicochetRadius);
       if (cols.Length <= 0) return;
 
       var selected = cols.Select(i => i.GetComponent<CharacterStats>()).Where(i => i);
-      
+
       var closest = selected
         .Where(i => i.CompareTag(targetTag) && !hitCharacters.Contains(i))
         .OrderBy(i => Vector3.Distance(i.transform.position, Transform.position)).FirstOrDefault();

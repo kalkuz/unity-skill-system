@@ -35,7 +35,7 @@ namespace KalkuzSystems.Skill
         if (inst)
         {
           var comp = inst.ProjectileBehaviour;
-          comp.Initialize(skillCastParams.position, skillCastParams.rotation, this, "");
+          comp.Initialize(skillCastParams.position, skillCastParams.rotation, this, "Enemy");
         }
       }
       else
@@ -53,7 +53,7 @@ namespace KalkuzSystems.Skill
           if (inst)
           {
             var comp = inst.ProjectileBehaviour;
-            comp.Initialize(skillCastParams.position, rot, this, "");
+            comp.Initialize(skillCastParams.position, rot, this, "Enemy");
           }
 
           if (isSequential) yield return delay;
